@@ -1,24 +1,20 @@
 # Jumpstart
 
-Jumpstart is an agentic vibecoding framework for quickly starting and building a new project. It  allows you to go from a single idea to a fully documented, coded, tested, and deployed software. 
+Jumpstart is an agentic vibecoding framework for quickly starting and building a new project. It  allows you to go from a single idea to fully documented, coded, tested, and deployed software. 
 
 **You don't have to write a single line of text or code — Jumpstart does it all for you.**
 
-There are 2 main phases:
+1. **Jumpstart:** Have the agent turn your idea into a thorough requirements document, comprehensive architecture plan, and brand new GitHub repo.
+2. **Iterate:** Watch the agent build your project piece-by-piece using the issue>plan>execute workflow.
 
-1. **Jumpstart:** Turn your idea into a thorough requirements document, comprehensive architecture plan, and brand new GitHub repo.
-2. **Iterate:** Build your project piece-by-piece using the agent-driven issue>plan>execute loop.
-
-```mermaid
-flowchart TD
-    Start([Start]) --> Jumpstart[/Create requirements, architecture, and repository/]
-    Jumpstart -->CreateIssue[/Write GitHub issue/]
-    CreateIssue --> CreatePlan[/Create planning document/]
-    CreatePlan --> Execute[/Execute planned changes/]
-    Execute --> LoopCheck{Project completed?}
-    LoopCheck -->|No| CreateIssue
-    LoopCheck -->|Yes| Complete([End])
-```
+## Why Use Jumpstart? ##
+- Creates thorough documentation including C4 diagrams, work tickets, design documents, and walkthroughs
+- Uses fine-tuned skills to reliably execute tasks
+- Implements QA framework (unit and E2E testing) and adds quality checkpoints
+- Handles the full git workflow from initializing the repo to committing work in feature branches to merging w/ main
+- Follows a comprehensive implementation checklist to ensure thorough, repeatable results for every work item
+- Requires minimal user intervention — give it a basic idea, watch it work, and approve the output
+- Handles every line of documentation and code  — **Jumpstart does it all for you**
 
 ## Prerequisites
 
@@ -48,9 +44,20 @@ Repeat steps 3-5 until the project is completed. Make sure to start a new chat f
 2. Verify the skills have been picked up by your agent. Different agents expect different directory names (e.g., `.claude`, `.cursor`, `.github/agents`). If the `/.agents` directory isn't being detected, rename it to match your agent's expected name.
 3. Use `/jumpstart-project [project idea]` to create your initial requirements and architecture documents. The agent will likely ask you additional questions to clarify the requirements. It will also pause for your feedback after creating each document. Finally, it will offer to create a new private GitHub repository if you don't have one already.
 
+```mermaid
+flowchart TD
+    Start([/jumpstart-project]) --> Reqs[/Gather requirements/]
+    Reqs -->Arch[/Write architecture plan/]
+    Arch -->Approval[/User approves plan/]
+    Approval --> Repo[/Create GitHub repo/]
+    Repo --> End([Ready for workflow])
+```
+
 ## Workflow
 
-Repeat this three step workflow for each implementation phase/feature/bug/task. Each step should be a new agent chat to prevent hallucinations and task creep.
+This three step process should be repeated for each feature, bug, task, etc. Each step should be a new agent chat to prevent hallucinations and task creep. 
+
+A good starting point is to have the agent convert each implementation phase in the architecture document into GitHub issues and then work through them in order. You can create multiple issues at once to have a backlog of work, but it's best to do planning and execution sequentially to prevent dependency issues.
 
 1. `/create-git-issue [work request]` — Describe the bug, feature, or task you want completed. The agent writes a draft, asks for your approval, then creates a GitHub issue.
 2. `/create-planning-doc [issue number]` — Reference a GitHub issue number. The agent creates a planning document based on the template and asks for your feedback.
@@ -59,6 +66,20 @@ Repeat this three step workflow for each implementation phase/feature/bug/task. 
 **That's it!** You only talk to the agent when starting a step and then approving the output. And you don't have to write any line of documentation or code — Jumpstart does it all for you.
 
 Jumpstart will also automatically update the requirements, architecture, and planning docs with any changes that occur during plan execution. It will also append proper documentation to the GitHub issue and close it out when completed.
+
+```mermaid
+flowchart TD
+    Start([Work backlog]) --> CreateIssue[//create-git-issue/]
+    CreateIssue --> Feedback1[/User approves issue text/]
+    Feedback1 --> CreatePlan[//create-planning-doc/]
+    CreatePlan --> Feedback2[/User approves planning doc/]
+    Feedback2 --> Execute[//execute-plan/]
+    Execute --> Feedback3[/User approves code/]
+    Feedback3 --> Merge[/Merge with main/]
+    Merge --> LoopCheck{Backlog empty?}
+    LoopCheck -->|No| CreateIssue
+    LoopCheck -->|Yes| Complete([Project completed])
+```
 
 ## Structure
 
@@ -83,7 +104,7 @@ There are many skills in Jumpstart but most are for guiding the agent through it
 
 The only skills you need to directly call are the main four: `/jumpstart-project`, `/create-git-issue`, `/create-planning-doc`, and `/execute-plan`.
 
-If you wish to change the format of the requirements, architecture, or planning doc you can modify the template files:
+If you wish to change the format of the requirements, architecture, or planning doc you can modify the template files inside that skill's directory:
 - `/.agents/skills/jumpstart-project/REQUIREMENTS_TEMPLATE.md`
 - `/.agents/skills/jumpstart-project/ARCHITECTURE_TEMPLATE.md`
 - `/.agents/skills/create-planning-doc/TEMPLATE.md`
@@ -94,14 +115,17 @@ Contains both the architecture and requirements documents created by the `/jumps
 
 ### /planning/
 
-Contains the planning documents created by the `/create-planning-doc` skill.
+Contains the planning documents created by the `/create-planning-doc` skill. These planning documents will also get attached to each GitHub issue when they are completed.
 
 ## Tips
 
+- If you already have a GitHub repo the `/jumpstart-project` will detect it and skip that step.
 - You can bypass using GitHub issues by calling the `/create-planning-doc` with a description of the feature/bug/task request.
-- Make GitHub issues story-sized, testable chunks. A good issue scope is a single user-facing feature or bug fix that can be implemented in 1-2 hours of agent work.
-- Jumpstart works best when auto-approve is enabled (with proper safety guardrails). Complex plans can take up to an hour to fully implement before asking for final user approval.
+- Make issues/work items story-sized, testable chunks. Agents work best with a single defined feature or bug that can be fully implemented.
+- The workflow is designed to have the agent ask questions if a requirement is unclear. Answer them and it will continue working.
+- Jumpstart works best when auto-approve is enabled (with proper safety guardrails). Complex plans can have the agent working through the implementation checklist for up to an hour before asking the user for approval.
 - Multi-threading agents is possible but you will need to use git worktrees and plan for dependencies.
+- Unfortunately agent hallucinations and mistakes do sporadically occur. The most common error is missing steps in implementation checklists, either in documentation or actual execution.
 
 ## Documentation Examples
 
