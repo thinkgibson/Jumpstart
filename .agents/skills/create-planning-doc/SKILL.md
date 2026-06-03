@@ -20,6 +20,9 @@ Create a structured planning document that enables any implementing agent to und
 | **GitHub Issue** | File: `planning/{reponame}_gitissue_{ID}.md`, Title: `GitHub Issue #{ID}: {Title}` |
 | **Generic Requirements** | File: `planning/{kebab-case-summary}.md`, Title: `{Summary Title}` |
 
+> [!TIP]
+> If the user's input is unclear, ambiguous, or lacks critical detail (e.g., missing steps to reproduce or clear goal), use the [clarify-requirements](file:///.agent/skills/clarify-requirements/SKILL.md) skill first to gather necessary information.
+
 ### 2. Gather Context
 
 Before writing the plan, collect:
