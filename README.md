@@ -86,42 +86,6 @@ Contains the planning documents created by the `/create-planning-doc` skill.
 
 Below are examples of the GitHub issues, architecture, and planning docs created automatically by the Jumpstart process.
 
-### Git Issue
-
-User input:
-
-~~~
-/create-git-issue add email newsletter feature to my blog
-~~~
-
-Output:
-
-~~~
-Title: [Feature]: Email newsletter subscription with custom backend and SendGrid/SES delivery
-Labels: enhancement
-
-Body:
-
-### User Story
-As a blog owner, I want readers to be able to subscribe to an email newsletter so that I can send them updates about new content.
-
-### Acceptance Criteria
-- [ ] A subscription form (email input + submit button) is displayed on the blog
-- [ ] Submitting a valid email stores it in the database
-- [ ] Duplicate emails are handled gracefully (no duplicate subscriptions)
-- [ ] An unsubscribe link is included in sent emails
-- [ ] Clicking the unsubscribe link removes the subscriber from the list
-- [ ] Admin can send newsletters via SendGrid or SES to all active subscribers
-- [ ] Basic email template is used for newsletter delivery
-
-### Technical Notes
-- Custom backend API with database table for subscribers (id, email, subscribed_at, unsubscribed_at, is_active)
-- SendGrid or Amazon SES for email sending
-- Single opt-in (no confirmation email required)
-- Unsubscribe via token-based link (no login required)
-- Consider rate limiting and bounce handling for email delivery
-~~~
-
 ### Requirements Document
 
 User input:
@@ -620,4 +584,390 @@ flowchart LR
 ```
 
 ---
+~~~
+
+### Git Issue
+
+User input:
+
+~~~
+/create-git-issue add email newsletter feature to my blog
+~~~
+
+Output:
+
+~~~
+Title: [Feature]: Email newsletter subscription with custom backend and SendGrid/SES delivery
+Labels: enhancement
+
+Body:
+
+### User Story
+As a blog owner, I want readers to be able to subscribe to an email newsletter so that I can send them updates about new content.
+
+### Acceptance Criteria
+- [ ] A subscription form (email input + submit button) is displayed on the blog
+- [ ] Submitting a valid email stores it in the database
+- [ ] Duplicate emails are handled gracefully (no duplicate subscriptions)
+- [ ] An unsubscribe link is included in sent emails
+- [ ] Clicking the unsubscribe link removes the subscriber from the list
+- [ ] Admin can send newsletters via SendGrid or SES to all active subscribers
+- [ ] Basic email template is used for newsletter delivery
+
+### Technical Notes
+- Custom backend API with database table for subscribers (id, email, subscribed_at, unsubscribed_at, is_active)
+- SendGrid or Amazon SES for email sending
+- Single opt-in (no confirmation email required)
+- Unsubscribe via token-based link (no login required)
+- Consider rate limiting and bounce handling for email delivery
+~~~
+
+### Planning Document
+
+User input:
+
+~~~
+/create-planning-doc [reference to above git issue number]
+~~~
+
+Output:
+
+~~~
+# Email Newsletter Subscription
+
+## Overview
+
+Add an email newsletter subscription feature to the personal blog, allowing visitors to subscribe via a form and the admin to send newsletters to all active subscribers via SendGrid or Amazon SES. The system uses a single opt-in model with token-based unsubscribe links.
+
+### Features
+
+- Subscription form (email input + submit button) displayed on the blog
+- Valid email submission stores the subscriber in the database
+- Duplicate email detection with graceful error handling
+- Token-based unsubscribe link in sent emails (no login required)
+- Unsubscribe handler removes/deactivates the subscriber
+- Admin can send newsletters via SendGrid or SES to all active subscribers
+- Basic HTML email template for newsletter delivery
+- Rate limiting for email sending and bounce handling
+
+---
+
+## Expected Code Changes
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/db/schema.ts` (add `subscribers` table to existing schema) | Database table for storing subscriber data |
+| `src/app/api/subscribe/route.ts` | API endpoint for email subscription |
+| `src/app/api/unsubscribe/route.ts` | API endpoint for token-based unsubscribe |
+| `src/app/api/admin/newsletter/send/route.ts` | Admin-only API endpoint to send newsletters |
+| `src/components/public/SubscribeForm.tsx` | Subscription form UI component |
+| `src/components/admin/NewsletterForm.tsx` | Admin compose-and-send newsletter UI |
+| `src/lib/email.ts` | Email sending utility (SendGrid / SES abstraction) |
+| `src/lib/email-templates/newsletter.ts` | HTML template for newsletter emails |
+| `src/lib/unsubscribe.ts` | Unsubscribe token generation and verification utilities |
+| `src/__tests__/api/subscribe.test.ts` | Unit tests for subscribe endpoint |
+| `src/__tests__/api/unsubscribe.test.ts` | Unit tests for unsubscribe endpoint |
+| `src/__tests__/lib/email.test.ts` | Unit tests for email utility |
+| `e2e/tests/newsletter-subscription.spec.ts` | E2E tests for full subscription flow |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/app/layout.tsx` or blog layout | Integrate `SubscribeForm` component into blog layout/sidebar |
+| `src/app/admin/page.tsx` (Dashboard) | Add link/section for "Send Newsletter" |
+| `src/app/admin/layout.tsx` | Add newsletter send page to admin navigation |
+| `package.json` | Add dependencies: `@sendgrid/mail` or `@aws-sdk/client-ses`, `uuid` for token generation, `nodemailer` if needed |
+| `src/lib/db/schema.ts` | Add `subscribers` table definition to Drizzle schema |
+| `src/lib/db/index.ts` | Ensure db client exports are compatible with new schema |
+
+---
+
+## Architecture Notes
+
+### Data Flow
+
+```mermaid
+flowchart LR
+    subgraph Visitor["Visitor (Public)"]
+        V[Enters email in SubscribeForm]
+    end
+
+    subgraph Admin["Blog Admin"]
+        A[Composes newsletter in admin panel]
+    end
+
+    subgraph Backend["Next.js Backend"]
+        SubscribeAPI["POST /api/subscribe<br/>Validates + stores email"]
+        UnsubscribeAPI["POST /api/unsubscribe<br/>Verifies token + deactivates"]
+        SendAPI["POST /api/admin/newsletter/send<br/>Sends to all active subscribers"]
+        DB[("SQLite Database<br/>(Drizzle ORM)")]
+        EmailLib["lib/email.ts<br/>SendGrid / SES abstraction"]
+    end
+
+    subgraph External["External Services"]
+        SendGrid["SendGrid API<br/>or Amazon SES"]
+        Inbox["Subscriber's Email Inbox"]
+    end
+
+    V --> SubscribeAPI
+    SubscribeAPI --> DB
+    SubscribeAPI -->|Duplicate check| DB
+    A --> SendAPI
+    SendAPI --> DB
+    SendAPI --> EmailLib
+    EmailLib --> SendGrid
+    SendGrid --> Inbox
+    Inbox -->|Clicks unsubscribe link| UnsubscribeAPI
+    UnsubscribeAPI --> DB
+```
+
+### Database Schema Addition
+
+**Subscribers Table** (to be added to existing `src/lib/db/schema.ts`):
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | TEXT (UUID) | PRIMARY KEY | Unique subscriber identifier |
+| `email` | TEXT | NOT NULL, UNIQUE | Subscriber's email address |
+| `unsubscribe_token` | TEXT | NOT NULL, UNIQUE | Token for unsubscribe link |
+| `subscribed_at` | TEXT (ISO 8601) | NOT NULL | When the subscription was created |
+| `unsubscribed_at` | TEXT (ISO 8601) | NULLABLE | When the subscriber unsubscribed |
+| `is_active` | INTEGER (0/1) | NOT NULL, DEFAULT 1 | Whether subscription is active |
+| `bounced` | INTEGER (0/1) | NOT NULL, DEFAULT 0 | Whether the email has bounced |
+
+### Component Hierarchy
+
+```
+Blog Layout (or Sidebar)
+  └── SubscribeForm
+        ├── EmailInput (text input with email validation)
+        └── SubmitButton
+              └── SuccessMessage / ErrorMessage (conditional)
+
+Admin Dashboard
+  └── NewsletterForm
+        ├── SubjectInput
+        ├── BodyEditor (textarea or basic rich text)
+        ├── RecipientCount (displays count of active subscribers)
+        └── SendButton
+              └── SendProgress / SendResult (conditional)
+```
+
+### API Route Design
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| `POST` | `/api/subscribe` | Public | Subscribe an email address |
+| `GET` | `/api/unsubscribe` | Public (token) | Handle unsubscribe link click (updates DB, shows confirmation page) |
+| `POST` | `/api/unsubscribe` | Public (token) | Programmatic unsubscribe |
+| `POST` | `/api/admin/newsletter/send` | Admin only | Send newsletter to all active subscribers |
+
+### State Management
+
+- **No client-side state library needed** — forms use React state (`useState`) for local UI state (loading, success, error).
+- **Subscription form**: Simple controlled component with inline validation.
+- **Newsletter form**: Admin form with subject, body, preview, and send state tracking.
+- **API responses**: Standard JSON responses `{ success: boolean, message: string }`.
+
+### Key Design Decisions
+
+1. **Single opt-in**: As specified, no confirmation email. Subscriber is immediately active on valid email submission.
+2. **Token-based unsubscribe**: Each subscriber gets a UUID token at creation. The unsubscribe link is `https://blog.example.com/api/unsubscribe?token=<uuid>`.
+3. **Email provider abstraction**: `lib/email.ts` wraps SendGrid/SES behind a common interface so switching providers requires no other code changes.
+4. **Rate limiting**: The newsletter send endpoint batches sends (e.g., 10 emails per second) to respect provider rate limits.
+5. **Bounce handling**: When a send fails due to a hard bounce, mark `bounced = 1` for that subscriber and exclude from future sends.
+
+---
+
+## Git Branch & Commit Strategy
+
+### Branch Name
+
+`feature/email-newsletter-subscription`
+
+### Commit Messages
+
+| Commit | Message |
+|--------|---------|
+| 1 | `feat: add subscribers table to database schema` |
+| 2 | `feat: implement subscribe and unsubscribe API endpoints` |
+| 3 | `feat: add SubscribeForm component to blog layout` |
+| 4 | `feat: implement email sending utility with SendGrid/SES` |
+| 5 | `feat: add admin newsletter compose and send form` |
+| 6 | `feat: create HTML email template for newsletters` |
+| 7 | `feat: add rate limiting and bounce handling for email delivery` |
+| 8 | `test: add unit and e2e tests for newsletter subscription` |
+
+---
+
+## Possible Risks & Conflicts
+
+| Risk | Mitigation |
+|------|------------|
+| **SendGrid/SES API keys compromised** | Store credentials in environment variables only; use restricted API keys with sending-only permissions |
+| **Rate limits exceeded on email provider** | Implement client-side throttling (e.g., batch 10 emails/sec with a queue) |
+| **Hard bounces damaging sender reputation** | Track bounce status per subscriber; automatically deactivate bounced subscribers; exclude from future sends |
+| **Unsubscribe token collision (UUID)** | Use `crypto.randomUUID()` — collision risk is negligible; enforce UNIQUE constraint in DB for defense-in-depth |
+| **SQLite write contention during bulk send** | Sends are sequential (batch loop), so writes are non-concurrent — acceptable for single-admin blog |
+| **Spam complaints** | Include clear unsubscribe link and sender identity in every email; comply with CAN-SPAM Act |
+| **Form spam / bot subscriptions** | Add honeypot field or basic CAPTCHA (e.g., Turnstile) to the subscribe form |
+| **Email delivery failures (temporary)** | Implement retry logic with exponential backoff for transient errors (e.g., 3 retries) |
+
+---
+
+## Test Coverage
+
+### Unit Tests (`src/__tests__/`)
+
+- [ ] **Subscribe API** (`api/subscribe.test.ts`):
+  - Valid email creates subscriber with active status and token
+  - Duplicate email returns 409 with descriptive message
+  - Invalid email returns 400 validation error
+  - Missing email field returns 400
+- [ ] **Unsubscribe API** (`api/unsubscribe.test.ts`):
+  - Valid token deactivates subscriber (sets `is_active = 0`, `unsubscribed_at`)
+  - Invalid token returns 404
+  - Already unsubscribed subscriber returns 200 (idempotent)
+  - Missing token returns 400
+- [ ] **Email utility** (`lib/email.test.ts`):
+  - `sendEmail()` calls provider with correct params
+  - Hard bounce marks subscriber as bounced
+  - Sending to inactive subscriber is skipped
+- [ ] **Unsubscribe token utility** (`lib/unsubscribe.test.ts`):
+  - Token generation produces unique UUIDs
+  - Token verification matches stored token
+
+### E2E Tests (`e2e/tests/newsletter-subscription.spec.ts`)
+
+- [ ] **Visitor subscribes**: Navigate to blog, find form, enter valid email, see success message
+- [ ] **Duplicate subscription**: Submit same email twice, see duplicate error message
+- [ ] **Invalid email**: Submit invalid email, see validation error
+- [ ] **Unsubscribe flow**: Visit unsubscribe link with valid token, see confirmation, subscriber deactivated in DB
+- [ ] **Invalid unsubscribe link**: Visit unsubscribe link with invalid token, see error page
+- [ ] **Admin sends newsletter** (requires auth): Log in as admin, compose newsletter, send, verify emails queued/delivered
+
+### Test Commands
+
+```bash
+# Unit tests
+npm run test -- subscribe
+npm run test -- unsubscribe
+npm run test -- email
+
+# E2E tests
+npm run test:e2e -- newsletter-subscription.spec.ts
+```
+
+---
+
+## Execution Phases
+
+### Phase 1: Database & API Backend
+
+**Goal**: Subscribers table exists, API endpoints work and are tested.
+
+| Task | Description |
+|------|-------------|
+| 1.1 | Add `subscribers` table to Drizzle schema with all columns and constraints |
+| 1.2 | Run database migration |
+| 1.3 | Implement `POST /api/subscribe` — validate email, check duplicates, store subscriber with UUID token |
+| 1.4 | Implement `GET/POST /api/unsubscribe` — verify token, deactivate subscriber |
+| 1.5 | Add unit tests for both API endpoints |
+| **Acceptance** | Subscribe/unsubscribe API calls return correct responses; duplicates rejected |
+
+### Phase 2: Email Sending Infrastructure
+
+**Goal**: Core email sending works with provider abstraction, bounce handling, and templates.
+
+| Task | Description |
+|------|-------------|
+| 2.1 | Create `lib/email.ts` with `EmailProvider` interface and SendGrid/SES implementation |
+| 2.2 | Create `lib/unsubscribe.ts` for token generation and verification |
+| 2.3 | Create `lib/email-templates/newsletter.ts` with basic HTML template including unsubscribe link |
+| 2.4 | Implement `POST /api/admin/newsletter/send` — fetch active subscribers, batch-send with rate limiting |
+| 2.5 | Add bounce handling — on send failure, mark subscriber as bounced |
+| 2.6 | Add unit tests for email utility and token functions |
+| **Acceptance** | Email utility sends test email; newsletter endpoint processes subscriber list |
+
+### Phase 3: Frontend Components
+
+**Goal**: Subscribe form on public blog, newsletter form in admin panel.
+
+| Task | Description |
+|------|-------------|
+| 3.1 | Build `SubscribeForm.tsx` — email input, submit button, inline validation, success/error states |
+| 3.2 | Integrate `SubscribeForm` into blog layout (sidebar or footer) |
+| 3.3 | Create unsubscribe confirmation page (simple page shown after token click) |
+| 3.4 | Build `NewsletterForm.tsx` — subject input, body textarea, recipient count, send button with progress |
+| 3.5 | Add newsletter send page to admin navigation and dashboard |
+| **Acceptance** | Subscribe form visible on blog; admin can compose and send newsletter |
+
+### Phase 4: Testing & Polish
+
+**Goal**: Comprehensive test coverage and production hardening.
+
+| Task | Description |
+|------|-------------|
+| 4.1 | Write E2E tests for full subscription and unsubscribe flow |
+| 4.2 | Write E2E tests for admin newsletter send flow |
+| 4.3 | Add bot protection (honeypot or Turnstile) to subscribe form |
+| 4.4 | Add environment variable validation on startup (check SendGrid/SES config) |
+| 4.5 | Verify all acceptance criteria from the requirements |
+| 4.6 | Run full test suite and fix any issues |
+| **Acceptance** | All tests pass; acceptance criteria met; admin can send newsletter end-to-end |
+
+---
+
+## Implementation Checklist
+
+> [!IMPORTANT]
+> All items from this checklist must be included in the task.md to ensure synchronization.
+
+### Preparation
+- [ ] Create git branch: `feature/email-newsletter-subscription`
+
+### Phase 1: Database & API Backend
+- [ ] Add `subscribers` table to `src/lib/db/schema.ts`
+- [ ] Run database migration
+- [ ] Implement `POST /api/subscribe`
+- [ ] Implement `GET/POST /api/unsubscribe`
+- [ ] Add unit tests for subscribe and unsubscribe endpoints
+
+### Phase 2: Email Sending Infrastructure
+- [ ] Create `lib/email.ts` with SendGrid/SES abstraction
+- [ ] Create `lib/unsubscribe.ts` for token utilities
+- [ ] Create `lib/email-templates/newsletter.ts` HTML template
+- [ ] Implement `POST /api/admin/newsletter/send`
+- [ ] Implement bounce handling
+- [ ] Add unit tests for email utility and token functions
+
+### Phase 3: Frontend Components
+- [ ] Build `SubscribeForm.tsx` component
+- [ ] Integrate subscribe form into blog layout
+- [ ] Create unsubscribe confirmation page
+- [ ] Build `NewsletterForm.tsx` admin component
+- [ ] Wire up admin navigation for newsletter send page
+
+### Phase 4: Testing & Polish
+- [ ] Write E2E tests for subscription/unsubscribe flow
+- [ ] Write E2E tests for admin newsletter send flow
+- [ ] Add bot protection to subscribe form
+- [ ] Add env var validation for email provider config
+- [ ] Run full test suite and fix issues
+
+### Verification
+- [ ] Run unit tests: `npm run test -- subscribe` and `npm run test -- unsubscribe` and `npm run test -- email`
+- [ ] Run E2E tests: `npm run test:e2e -- newsletter-subscription.spec.ts`
+- [ ] **MANDATORY**: Run E2E baseline comparison using the run-e2e-tests skill
+
+### Submission
+- [ ] Commit changes using conventional commit format
+- [ ] **MANDATORY**: Request user approval before proceeding
+- [ ] Create PR using the create-pr-git skill
+- [ ] Merge the PR using the merge-git skill
+- [ ] Update architecture docs to reflect the actual state of the implementation
+
 ~~~
