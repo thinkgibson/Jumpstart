@@ -30,7 +30,7 @@ Jumpstart was built and tested using VS Code but should work with any IDE or ter
 
 Commands prefixed with `/` invoke the corresponding skill in your agent. A skill is a packaged set of instructions that guides the agent through a specific task, such as creating a GitHub issue or generating a planning document.
 
-1. Clone to local directory: `git clone https://github.com/thinkgibson/Jumpstart.git .`
+1. Unzip Jumpstart to a local folder.
 2. `/jumpstart-project` to turn your project idea into initial requirements, architecture plan, and GitHub repository
 3. `/create-git-issue` to turn an implementation phase, feature, bug, or idea into a GitHub issue
 4. `/create-planning-doc` to turn a GitHub issue into a thoroughly documented plan
@@ -40,11 +40,7 @@ Repeat steps 3-5 until the project is completed. Make sure to start a new chat f
 
 ## Setup
 
-1. Clone or copy the Jumpstart repository into your local project folder.
-
-    `git clone https://github.com/thinkgibson/Jumpstart.git .`
-
-    Ensure the `/.agents` directory is placed at the root of your project.
+1. Download the Jumpstart .zip and extract it into your local project folder. Ensure the `/.agents` directory is placed at the root of your project.
 
 2. Verify the skills have been picked up by your agent. Different agents expect different directory names (e.g., `.claude`, `.cursor`, `.github/agents`). If the `/.agents` directory isn't being detected, rename it to match your agent's expected name.
 
